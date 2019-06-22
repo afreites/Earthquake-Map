@@ -2,6 +2,8 @@
 var queryUrl = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=" +
   "2014-01-02&maxlongitude=-69.52148437&minlongitude=-123.83789062&maxlatitude=48.74894534&minlatitude=25.16517337";
 
+var tectonicPlatesURL = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json";
+
 // Perform a GET request to the query URL
 d3.json(queryUrl, function(data) {
   // Once we get a response, send the data.features object to the createFeatures function
@@ -23,7 +25,7 @@ function createFeatures(earthquakeData) {
     if (magnitude === 0) {
       return 1;
     }
-    return magnitude * 4;
+    return magnitude * 5;
   }
   function getColor(magnitude) {
     switch (true) {
@@ -66,10 +68,10 @@ function createFeatures(earthquakeData) {
 function createMap(earthquakes) {
 
   // Define streetmap and darkmap layers
- var streetmap= L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+ var outdoorsmap= L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
   attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
   maxZoom: 18,
-  id: "mapbox.streets",
+  id: "mapbox.outdoors",
   accessToken: API_KEY
 });
 
@@ -82,14 +84,17 @@ function createMap(earthquakes) {
 
   // Define a baseMaps object to hold our base layers
   var baseMaps = {
-    "Street Map": streetmap,
+    "Outdoors Map": outdoorsmap,
     "Dark Map": darkmap
   };
 
+  // create a layer for tectonic plates
+  var tectonicPlates = new L.LayerGroup();
+
   // Create overlay object to hold our overlay layer
   var overlayMaps = {
-    Earthquakes: earthquakes
-    
+    Earthquakes: earthquakes,
+    TectonicPlates: tectonicPlates
   };
 
 //   // Create our map, giving it the streetmap and earthquakes layers to display on load
@@ -97,9 +102,19 @@ function createMap(earthquakes) {
     center: [
       37.09, -95.71
     ],
-    zoom: 5,
-    layers: [streetmap, earthquakes]
+    zoom: 3.45,
+    layers: [outdoorsmap, earthquakes,tectonicPlates ]
   });
+
+  d3.json(tectonicPlatesURL, function(plateData) {
+    // Adding our geoJSON data, along with style information, to the tectonicplates
+    // layer.
+    L.geoJson(plateData, {
+      color: "yellow",
+      weight: 2
+    })
+    .addTo(tectonicPlates);
+});
 
   // Create a layer control
   // Pass in our baseMaps and overlayMaps
